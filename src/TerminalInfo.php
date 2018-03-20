@@ -2,8 +2,8 @@
 /**
  * @Author: pizepei
  * @Date:   2018-02-10 22:57:52
- * @Last Modified by:   pizepei
- * @Last Modified time: 2018-03-20 17:01:23
+ * @Last Modified by:   anchen
+ * @Last Modified time: 2018-03-21 01:15:20
  */
 namespace terminal;
 /**
@@ -441,26 +441,122 @@ class TerminalInfo{
         // if(in_array($value,self::$IpInfo)){
         //     return $value;
         // }
-        echo $value;
-        var_dump(self::getTbIp('121.34.35.220'));
-        var_dump(self::getXlIp('121.34.35.220'));
-        var_dump(self::getBdIp('121.34.35.220'));
+        
+        //过滤部分IP
+        // $TbIp = self::getTbIp('121.34.35.220');
+        // $XlIp = self::getXlIp('121.34.35.220');
+        // $BdIp = self::getBdIp('121.34.35.220');
 
+        // $TbIp = self::getTbIp('14.30.231.102');
+        // $XlIp = self::getXlIp('14.30.231.102');
+        // $BdIp = self::getBdIp('14.30.231.102');
+        // 中国联通
+        // $TbIp = self::getTbIp('112.97.59.125');
+        // $XlIp = self::getXlIp('112.97.59.125');
+        // $BdIp = self::getBdIp('112.97.59.125');
+        //日本
+        // $TbIp = self::getTbIp('45.76.99.22');
+        // $XlIp = self::getXlIp('45.76.99.22');
+        // $BdIp = self::getBdIp('45.76.99.22');
+        //新加坡
+        // if($TbIp = self::getTbIp('207.148.76.163')){ $arr['TbIp']= $TbIp;};
+        // if($XlIp = self::getXlIp('207.148.76.163')){ $arr['XlIp']= $XlIp;};
+        // if($BdIp = self::getBdIp('207.148.76.163')){ $arr['BdIp']= $BdIp;};
 
-        // //搜狗IP接口
-        // $Surl = 'http://api.go2map.com/engine/api/ipcity/json?cb='.$value;
-        // //{"response":{"level":12,"y":2562500,"ip":"121.34.35.220","x":12694500,"city":"深圳"},"status":"ok"}
-        // //百度接口
-        // $url = 'https://api.map.baidu.com/location/ip?ip='.$value.'&ak='.'百度ak'.'&coor=bd09ll';
+        $isp['isp'] = null;
+        //越前面权重越高
+        if($BdIp = self::getBdIp('14.30.231.102')){ $arr['BdIp']= $BdIp;};
+        if($TbIp = self::getTbIp('14.30.231.102')){ $arr['TbIp']= $TbIp; $isp['isp'] =$TbIp['isp']; };
+        if($XlIp = self::getXlIp('14.30.231.102')){ $arr['XlIp']= $XlIp;};
 
-        // // $IpData = http_request($url);
-        // $IpData = json_decode(http_request($url),true);
+        //首先判断国家
+        //优先淘宝接口
+        if($TbIp['country'] != '中国' ){
+            return $TbIp;
+        }
+        //之后新浪接口
+        if($XlIp['country'] != '中国' ){
+            return array_merge_recursive($XlIp,$isp);
+        }
+        //开始省数据
+        if(!isset($TbIp['province']) ){
+            unset($arr['TbIp']);
+        }
+        if(!isset($XlIp['province']) ){
+            unset($arr['XlIp']);
+        }
+        if(!isset($BdIp['province']) ){
+            unset($arr['BdIp']);
+        }
+        //如果真有一个结果
+        if(count($arr) == 1){
+             return array_merge_recursive(each($arr)['value'],$isp);
+        }
+        // 比较省权重
+        // return array_merge_recursive($arr[self::funLarity($arr,'province')],$isp);
+        //开始城市数据
+        if(!isset($TbIp['city']) ){
+            unset($arr['TbIp']);
+        }
+        if(!isset($XlIp['city']) ){
+            unset($arr['XlIp']);
+        }
+        if(!isset($BdIp['city']) ){
+            unset($arr['BdIp']);
+        }
+        //城市优先百度
+        if(count($arr) == 1){
+             return each($arr)['value'];
+        }else if(count($arr) == 2){
+            if(isset($arr['BdIp'])){
+                return array_merge_recursive($arr['BdIp'],$isp);
+            }
+        }
 
-        // if($IpData['status'] == 0){
-        //    return  $IpData['content']['address_detail'];
-        // }
-        // return $IpData;
+        // 比较城市权重
+        return array_merge_recursive($arr[self::funLarity($arr)],$isp);
+
     }
+    /**
+     * [funLarity 把文字切割数组存储]
+     * @param  [type] $arr  [description]
+     * @param  string $name [description]
+     * @return [type]       [description]
+     */
+    public static function funLarity($arr,$name = 'city')
+    {
+        //获取数组
+        foreach ($arr as $key => $value) {
+            if($value == null || $value == false || !isset($value[$name]) ){
+                 $Data[$key] = 0;
+            }else{
+                $Data[$key] = self::CharToArr($value[$name]);
+            }
+        }
+
+        //获取权重
+        foreach ($Data as $key => $value) {
+        
+            foreach ($Data as $k => $val) {
+                if($k !=$key && $value != null ){
+                    $sor[$key][$k] = count(array_intersect($value,$val));
+                }
+            }
+
+        }
+
+        foreach ($sor as $key => $value) {
+            arsort($value);
+            $sorData[] = each($value)['key'];
+        }
+        //排序权重
+        $sorData = array_count_values($sorData);
+        arsort($sorData);
+        return each($sorData)['key'];
+
+    }
+
+
     /**
      * [getTbIp 淘宝ip接口]
      * @Effect
@@ -485,7 +581,7 @@ class TerminalInfo{
         $Data = $Data['data'];
         $reData['country'] = $Data['country'];//国家
         $reData['province'] = $Data['region'];//省
-        $reData['city'] = $Data['city'];//城市
+        if($Data['city'] != 'XX' && $Data['city'] !=''){ $reData['city'] = $Data['city'];}//城市
         $reData['isp'] = $Data['isp'];//服务商
         if(!empty($Data['area'])){$reData['district'] = $Data['area'];}//区域
         if($Data['county']!= 'XX'){$reData['county'] = $Data['county'];}//县
@@ -508,11 +604,12 @@ class TerminalInfo{
         //处理数据
         $reData['country'] = $Data['country'];//国家
         $reData['province'] = $Data['province'];//省
-        $reData['city'] = $Data['city'];//城市
+        if($Data['city'] != ''){$reData['city'] = $Data['city'];}//城市
+
         //区域
         if(!empty($Data['district'])){$reData['district'] = $Data['district'];}
         //服务商
-        if(!empty($Data['isp'])){$reData['isp'] = $Data['isp'];}
+        // if(!empty($Data['isp'])){$reData['isp'] = $Data['isp'];}
         return $reData;
     }
 
@@ -526,7 +623,7 @@ class TerminalInfo{
     {
 
 
-        $url = 'https://api.map.baidu.com/location/ip?ip='.$value.'&ak='.'百度ak'.'&coor=bd09ll';
+        $url = 'https://api.map.baidu.com/location/ip?ip='.$value.'&ak='.'ekftM1MKRqdZQ7LFCQHQR8df6rgXy044'.'&coor=bd09ll';
 
         $Data = json_decode(self::http_request($url),true);
         if(!$Data){
@@ -539,7 +636,8 @@ class TerminalInfo{
         $Data = $Data['content']['address_detail'];
         //处理数据
         $reData['province'] = $Data['province'];//省
-        $reData['city'] = $Data['city'];//城市
+        if($Data['city'] != ''){$reData['city'] = $Data['city'];}//城市
+
         //区域
         if(!empty($Data['district'])){$reData['district'] = $Data['district'];}
         return $reData;
@@ -596,6 +694,14 @@ class TerminalInfo{
         return $output;
     }
 
+    /**
+     * [CharToArr 把文字切割数组存储  ]
+     * @Effect
+     * @param  [type] $str [description]
+     */
+    public static function CharToArr($str){  
+         return preg_split('/(?<!^)(?!$)/u', $str );  
+    } 
 
 }
 
