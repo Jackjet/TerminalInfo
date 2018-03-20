@@ -1,12 +1,11 @@
 <?php
 /**
- * @Author: anchen
+ * @Author: pizepei
  * @Date:   2018-02-10 22:57:52
  * @Last Modified by:   pizepei
- * @Last Modified time: 2018-03-01 17:45:22
+ * @Last Modified time: 2018-03-20 17:01:23
  */
-namespace custom;
-use think\Request;
+namespace terminal;
 /**
  * 访问客户端信息
  */
@@ -150,7 +149,7 @@ class TerminalInfo{
 
         $arr['Os'] =  self::get_os() ==29?self::get_os():array_search(self::get_os(),self::$OsInfo);//获取操作系统
 
-        $arr['IpInfo'] = self::getIp();//时时ip信息
+        $arr['IpInfo'] = self::getIpInfo();//ip信息相关信息
 
         if(self::get_os() ==29){
             $Build = self::getBuild();
@@ -169,8 +168,6 @@ class TerminalInfo{
         }else if(self::get_os() == 30){
 
             $Build = self::getBuildIPhone();
-
-
             $count = count($Build);
             if($count >1){
                 $count = $count-1;
@@ -179,9 +176,7 @@ class TerminalInfo{
             }else{
                 $arr['Os'] = $Build[0];
             }
-
             // $arr['Os'] = $Build[0].' '.$Build[1];
-            
             $arr['Build'] = $Build;
             $arr['NetType'] = self::getBuildNetType();
         }else{
@@ -190,7 +185,6 @@ class TerminalInfo{
         }
         //判断返回格式
         return $arr =  $type == 'arr'?$arr:json_encode($arr);
-
     }
 
     /**
@@ -250,13 +244,11 @@ class TerminalInfo{
             return 'unknow';
         }
     }
-
-    /**  
-     * 获取客户端操作系统信息包括win10  
-     * @param  null  
-     * @author  Jea杨  
-     * @return string   
-     */  
+    /**
+     * [get_os 获取客户端操作系统信息包括]
+     * @Effect
+     * @return [type] [description]
+     */
     public static function get_os(){  
     $agent = $_SERVER['HTTP_USER_AGENT'];  
         $os = false;  
@@ -406,11 +398,13 @@ class TerminalInfo{
             return '未知型号数据';
         }
 
-        // return '未知型号版本数据';
         return explode('; ',$arrt[1]);
     }
-
-
+    /**
+     * [getBuildIPhone 获取苹果设备的部分设备信息]
+     * @Effect
+     * @return [type] [description]
+     */
     public static function getBuildIPhone(){
         $agent = $_SERVER['HTTP_USER_AGENT'];  
         if(!preg_match("/; CPU (.*) like Mac OS X/i",$agent,$arrt)){
@@ -432,30 +426,179 @@ class TerminalInfo{
         }
         return $arrt[1];
     }
-
-    public static function getIp($value = ''){
-
+    /**
+     * [getIpInfo 分销获取ip数据]
+     * @Effect
+     * @param  string $value [description]
+     * @return [type]        [description]
+     */
+    public static function getIpInfo($value = ''){
+        //判断并且获取IP数据
         if(empty($value)){
-            $request = Request::instance();
-            $value = $request->ip();
+            $value = self::get_ip();
         }
+        //过滤部分IP
+        // if(in_array($value,self::$IpInfo)){
+        //     return $value;
+        // }
+        echo $value;
+        var_dump(self::getTbIp('121.34.35.220'));
+        var_dump(self::getXlIp('121.34.35.220'));
+        var_dump(self::getBdIp('121.34.35.220'));
 
-        if(in_array($value,self::$IpInfo)){
-            return $value;
-        }
+
+        // //搜狗IP接口
+        // $Surl = 'http://api.go2map.com/engine/api/ipcity/json?cb='.$value;
+        // //{"response":{"level":12,"y":2562500,"ip":"121.34.35.220","x":12694500,"city":"深圳"},"status":"ok"}
+        // //百度接口
+        // $url = 'https://api.map.baidu.com/location/ip?ip='.$value.'&ak='.'百度ak'.'&coor=bd09ll';
+
+        // // $IpData = http_request($url);
+        // $IpData = json_decode(http_request($url),true);
+
+        // if($IpData['status'] == 0){
+        //    return  $IpData['content']['address_detail'];
+        // }
+        // return $IpData;
+    }
+    /**
+     * [getTbIp 淘宝ip接口]
+     * @Effect
+     * @param  [type] $value [description]
+     * @return [type]        [description]
+     */
+    public static function getTbIp($value)
+    {
         //淘宝接口
-        $Turl = 'https://ip.taobao.com/service/getIpInfo.php?ip=113.91.189.73';
-        http://ip.taobao.com/service/getIpInfo.php?ip=113.91.189.73
-        $url = 'https://api.map.baidu.com/location/ip?ip='.$value.'&ak='.config('lbsyun_baidu.ak').'&coor=bd09ll';
-        // $IpData = http_request($url);
-        $IpData = json_decode(http_request($url),true);
+        // $url = 'https://ip.taobao.com/service/getIpInfo.php?ip='.$value;
 
-        if($IpData['status'] == 0){
-           return  $IpData['content']['address_detail'];
+        $url = 'http://ip.taobao.com/service/getIpInfo.php?ip='.$value;
+        
+        //返回数据格式
+        //{"code":0,"data":{"ip":"121.34.35.220","country":"中国","area":"","region":"广东","city":"深圳","county":"XX","isp":"电信","country_id":"CN","area_id":"","region_id":"440000","city_id":"440300","county_id":"xx","isp_id":"100017"}}
+        $Data = json_decode(self::http_request($url),true);
+
+        if($Data['code'] != 0){
+           return  false;
         }
-        return $IpData;
+        //处理数据
+        $Data = $Data['data'];
+        $reData['country'] = $Data['country'];//国家
+        $reData['province'] = $Data['region'];//省
+        $reData['city'] = $Data['city'];//城市
+        $reData['isp'] = $Data['isp'];//服务商
+        if(!empty($Data['area'])){$reData['district'] = $Data['area'];}//区域
+        if($Data['county']!= 'XX'){$reData['county'] = $Data['county'];}//县
+
+        return $reData;
+    }
+    /**
+     * [getSgIp 新浪IP接口]
+     * @Effect
+     * @param  [type] $value [description]
+     * @return [type]        [description]
+     */
+    public static function getXlIp($value)
+    {
+        $url = 'https://int.dpool.sina.com.cn/iplookup/iplookup.php?format=json&ip='.$value;
+        $Data = json_decode(self::http_request($url),true);
+        if(!$Data){
+           return  false;
+        }
+        //处理数据
+        $reData['country'] = $Data['country'];//国家
+        $reData['province'] = $Data['province'];//省
+        $reData['city'] = $Data['city'];//城市
+        //区域
+        if(!empty($Data['district'])){$reData['district'] = $Data['district'];}
+        //服务商
+        if(!empty($Data['isp'])){$reData['isp'] = $Data['isp'];}
+        return $reData;
+    }
+
+    /**
+     * [getBdIp 百度接口]
+     * @Effect
+     * @param  [type] $value [description]
+     * @return [type]        [description]
+     */
+    public static function getBdIp($value)
+    {
+
+
+        $url = 'https://api.map.baidu.com/location/ip?ip='.$value.'&ak='.'百度ak'.'&coor=bd09ll';
+
+        $Data = json_decode(self::http_request($url),true);
+        if(!$Data){
+           return  false;
+        }
+        if($Data['status'] !=0){
+           return  false;
+        }  
+        $reData['point'] =  $Data['content']['point'];
+        $Data = $Data['content']['address_detail'];
+        //处理数据
+        $reData['province'] = $Data['province'];//省
+        $reData['city'] = $Data['city'];//城市
+        //区域
+        if(!empty($Data['district'])){$reData['district'] = $Data['district'];}
+        return $reData;
+
+    }
+
+    /**
+     * [get_ip 不同环境下获取真实的IP]
+     * @Effect
+     * @return [type] [description]
+     */
+    public static function get_ip(){
+            //判断服务器是否允许$_SERVER
+            if(isset($_SERVER)){    
+                if(isset($_SERVER['HTTP_X_FORWARDED_FOR'])){
+                    $realip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+                }elseif(isset($_SERVER['HTTP_CLIENT_IP'])) {
+                    $realip = $_SERVER['HTTP_CLIENT_IP'];
+                }else{
+                    $realip = $_SERVER['REMOTE_ADDR'];
+                }
+            }else{
+                //不允许就使用getenv获取  
+                if(getenv("HTTP_X_FORWARDED_FOR")){
+                      $realip = getenv( "HTTP_X_FORWARDED_FOR");
+                }elseif(getenv("HTTP_CLIENT_IP")) {
+                      $realip = getenv("HTTP_CLIENT_IP");
+                }else{
+                      $realip = getenv("REMOTE_ADDR");
+                }
+            }
+            return $realip;
+    }  
+    /**
+     * [http_request curl请求]
+     * @Effect
+     * @param  [type] $url  [地址]
+     * @param  [type] $data [POST数据]
+     * @return [type]       [description]
+     */
+    public static function http_request($url, $data = null)
+    {
+        $curl = curl_init();
+        curl_setopt($curl, CURLOPT_URL, $url);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, FALSE);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, FALSE);
+        if (!empty($data)){
+            curl_setopt($curl, CURLOPT_POST, 1);
+            curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
+        }
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, TRUE);
+        $output = curl_exec($curl);
+        curl_close($curl);
+        return $output;
     }
 
 
-
 }
+
+
+var_dump(TerminalInfo::getIpInfo());
+
