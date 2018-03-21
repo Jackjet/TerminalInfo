@@ -2,15 +2,14 @@
 /**
  * @Author: pizepei
  * @Date:   2018-02-10 22:57:52
- * @Last Modified by:   anchen
- * @Last Modified time: 2018-03-21 01:15:20
+ * @Last Modified by:   pizepei
+ * @Last Modified time: 2018-03-21 11:18:37
  */
 namespace terminal;
 /**
  * 访问客户端信息
  */
 class TerminalInfo{
-
     //浏览器类型
     public static  $AgentInfoBrower = array(  
                 'MSIE' => 1,  
