@@ -3,7 +3,7 @@
  * @Author: pizepei
  * @Date:   2018-02-10 22:57:52
  * @Last Modified by:   pizepei
- * @Last Modified time: 2018-03-21 11:18:37
+ * @Last Modified time: 2018-03-23 15:03:32
  */
 namespace terminal;
 /**
@@ -471,11 +471,12 @@ class TerminalInfo{
         //首先判断国家
         //优先淘宝接口
         if($TbIp['country'] != '中国' ){
-            return $TbIp;
+            return ['certain'=>$TbIp,'all'=>$arr];
         }
         //之后新浪接口
         if($XlIp['country'] != '中国' ){
-            return array_merge_recursive($XlIp,$isp);
+            return ['certain'=>array_merge_recursive($XlIp,$isp),'all'=>$arr];
+
         }
         //开始省数据
         if(!isset($TbIp['province']) ){
@@ -489,7 +490,7 @@ class TerminalInfo{
         }
         //如果真有一个结果
         if(count($arr) == 1){
-             return array_merge_recursive(each($arr)['value'],$isp);
+            return ['certain'=>array_merge_recursive(each($arr)['value'],$isp),'all'=>$arr];
         }
         // 比较省权重
         // return array_merge_recursive($arr[self::funLarity($arr,'province')],$isp);
@@ -505,15 +506,16 @@ class TerminalInfo{
         }
         //城市优先百度
         if(count($arr) == 1){
-             return each($arr)['value'];
+            return ['certain'=>each($arr)['value'],'all'=>$arr];
+
         }else if(count($arr) == 2){
             if(isset($arr['BdIp'])){
-                return array_merge_recursive($arr['BdIp'],$isp);
+                return ['certain'=>array_merge_recursive($arr['BdIp'],$isp),'all'=>$arr];
             }
         }
 
         // 比较城市权重
-        return array_merge_recursive($arr[self::funLarity($arr)],$isp);
+        return ['certain'=>array_merge_recursive($arr[self::funLarity($arr)],$isp),'all'=>$arr];
 
     }
     /**
