@@ -3,7 +3,7 @@
  * @Author: pizepei
  * @Date:   2018-02-10 22:57:52
  * @Last Modified by:   pizepei
- * @Last Modified time: 2018-03-23 15:03:32
+ * @Last Modified time: 2018-03-23 17:21:25
  */
 namespace terminal;
 /**
@@ -140,6 +140,12 @@ class TerminalInfo{
         return $arr =  $type == 'arr'?$arr:json_encode($arr);
 
     }
+    /**
+     * [getArowserPro 获取完整的中文数据]
+     * @Effect
+     * @param  string $type [description]
+     * @return [type]       [description]
+     */
     public static function  getArowserPro($type = 'arr'){
 
         $arr['Ipanel'] =self::getAgentInfo(self::getAgentInfo());//获取浏览器内核
@@ -707,5 +713,5 @@ class TerminalInfo{
 }
 
 
-var_dump(TerminalInfo::getIpInfo());
+var_dump(TerminalInfo::getArowserPro());
 
